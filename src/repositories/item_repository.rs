@@ -83,6 +83,14 @@ impl ItemRepository {
     pub async fn delete(&self, id: i32) -> Result<(), String> {
         // 실제로는 여기서 데이터베이스에서 삭제
         // 예: DELETE FROM items WHERE id = $1
-        Ok(())
+        let conn = Arc::clone(&self.conn);
+        spawn_blocking(move || {
+            let conn = conn.lock().unwrap();
+            conn.execute("DELETE FROM items WHERE id = ?1", params![id])
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
 }
